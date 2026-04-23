@@ -12,14 +12,28 @@ class EvalHook(Hook):
         interval (int): Evaluation interval (by epochs). Default: 1.
     """
 
-    def __init__(self, dataloader, interval=1, by_epoch=False, **eval_kwargs):
+    def __init__(self,
+                 dataloader,
+                 interval=1,
+                 by_epoch=False,
+                 save_best=None,
+                 rule=None,
+                 **eval_kwargs):
         if not isinstance(dataloader, DataLoader):
             raise TypeError('dataloader must be a pytorch DataLoader, but got '
                             f'{type(dataloader)}')
         self.dataloader = dataloader
         self.interval = interval
         self.by_epoch = by_epoch
+        self.save_best = save_best
+        self.rule = rule
+        self.best_score = None
         self.eval_kwargs = eval_kwargs
+
+        if self.save_best is not None and self.rule is None:
+            self.rule = 'greater'
+        if self.rule not in (None, 'greater', 'less'):
+            raise ValueError("rule must be one of None, 'greater', or 'less'")
 
     def after_train_iter(self, runner):
         """After train epoch hook."""
@@ -46,6 +60,34 @@ class EvalHook(Hook):
         for name, val in eval_res.items():
             runner.log_buffer.output[name] = val
         runner.log_buffer.ready = True
+        self._save_best_checkpoint(runner, eval_res)
+
+    def _save_best_checkpoint(self, runner, eval_res):
+        if self.save_best is None:
+            return
+        if self.save_best not in eval_res:
+            raise KeyError(
+                f'{self.save_best} is not in evaluation results: '
+                f'{list(eval_res.keys())}')
+
+        score = eval_res[self.save_best]
+        if self.best_score is None:
+            is_better = True
+        elif self.rule == 'greater':
+            is_better = score > self.best_score
+        else:
+            is_better = score < self.best_score
+
+        if not is_better:
+            return
+
+        self.best_score = score
+        filename_tmpl = f'best_{self.save_best}.pth'
+        runner.save_checkpoint(
+            runner.work_dir, filename_tmpl=filename_tmpl, save_optimizer=False)
+        runner.logger.info(
+            f'Now best checkpoint is saved as {filename_tmpl}. '
+            f'Best {self.save_best}: {score:.6f}')
 
 
 class DistEvalHook(EvalHook):

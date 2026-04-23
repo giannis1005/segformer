@@ -1,4 +1,5 @@
 from .compose import Compose
+from .binary_mask import BinaryMask, SetOriShapeToImgShape
 from .formating import (Collect, ImageToTensor, ToDataContainer, ToTensor,
                         Transpose, to_tensor)
 from .loading import LoadAnnotations, LoadImageFromFile
@@ -12,5 +13,6 @@ __all__ = [
     'Transpose', 'Collect', 'LoadAnnotations', 'LoadImageFromFile',
     'MultiScaleFlipAug', 'AlignedResize', 'Resize', 'RandomFlip', 'Pad', 'RandomCrop',
     'Normalize', 'SegRescale', 'PhotoMetricDistortion', 'RandomRotate',
-    'AdjustGamma', 'CLAHE', 'Rerange', 'RGB2Gray'
+    'AdjustGamma', 'CLAHE', 'Rerange', 'RGB2Gray', 'BinaryMask',
+    'SetOriShapeToImgShape'
 ]
