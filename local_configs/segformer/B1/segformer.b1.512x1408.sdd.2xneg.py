@@ -5,7 +5,7 @@ _base_ = [
     '../../_base_/schedules/schedule_160k_adamw.py'
 ]
 
-norm_cfg = dict(type='SyncBN', requires_grad=True)
+norm_cfg = dict(type='BN', requires_grad=True)
 find_unused_parameters = True
 model = dict(
     type='EncoderDecoder',

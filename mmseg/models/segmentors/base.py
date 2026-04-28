@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
+from mmcv.parallel import DataContainer
 from mmcv.runner import auto_fp16
 
 
@@ -149,13 +150,17 @@ class BaseSegmentor(nn.Module):
                 DDP, it means the batch size on each GPU), which is used for
                 averaging the logs.
         """
+        data_batch = self._unwrap_data_containers(data_batch)
         losses = self(**data_batch)
         loss, log_vars = self._parse_losses(losses)
+
+        img = data_batch['img']
+        num_samples = len(img) if isinstance(img, list) else img.size(0)
 
         outputs = dict(
             loss=loss,
             log_vars=log_vars,
-            num_samples=len(data_batch['img'].data))
+            num_samples=num_samples)
 
         return outputs
 
@@ -166,8 +171,27 @@ class BaseSegmentor(nn.Module):
         during val epochs. Note that the evaluation after training epochs is
         not implemented with this method, but an evaluation hook.
         """
+        data_batch = self._unwrap_data_containers(data_batch)
         output = self(**data_batch, **kwargs)
         return output
+
+    @staticmethod
+    def _unwrap_data_containers(data):
+        if isinstance(data, DataContainer):
+            data = data.data
+            if isinstance(data, list) and len(data) == 1:
+                return BaseSegmentor._unwrap_data_containers(data[0])
+            return BaseSegmentor._unwrap_data_containers(data)
+        if isinstance(data, list):
+            return [BaseSegmentor._unwrap_data_containers(item) for item in data]
+        if isinstance(data, tuple):
+            return tuple(BaseSegmentor._unwrap_data_containers(item) for item in data)
+        if isinstance(data, dict):
+            return {
+                key: BaseSegmentor._unwrap_data_containers(value)
+                for key, value in data.items()
+            }
+        return data
 
     @staticmethod
     def _parse_losses(losses):

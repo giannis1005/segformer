@@ -53,7 +53,7 @@ def train_segmentor(model,
             drop_last=True) for ds in dataset
     ]
 
-    # put model on gpus
+    # put model on device
     if distributed:
         find_unused_parameters = cfg.get('find_unused_parameters', False)
         # Sets the `find_unused_parameters` parameter in
@@ -63,9 +63,12 @@ def train_segmentor(model,
             device_ids=[torch.cuda.current_device()],
             broadcast_buffers=False,
             find_unused_parameters=find_unused_parameters)
-    else:
+    elif torch.cuda.is_available():
         model = MMDataParallel(
             model.cuda(cfg.gpu_ids[0]), device_ids=cfg.gpu_ids)
+    else:
+        logger.warning('CUDA is not available. Training will run on CPU.')
+        model = model.cpu()
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)
