@@ -53,9 +53,23 @@ lr_config = dict(
     by_epoch=False)
 
 data = dict(samples_per_gpu=2)
+checkpoint_config = dict(by_epoch=False, interval=62)
 evaluation = dict(
-    interval=4000,
+    interval=62,
     metric='sdd',
     lambda_fp=0.10,
     save_best='sdd_score',
     rule='greater')
+log_config = dict(
+    interval=10,
+    hooks=[
+        dict(type='TextLoggerHook', by_epoch=False),
+    ])
+preview_config = dict(
+    interval=62,
+    out_dir='previews',
+    data_root='C:/Users/giann/OneDrive/Desktop/SDD',
+    positive_split='data/sdd/splits/val_positive.txt',
+    negative_split='data/sdd/splits/val_negative.txt',
+    max_positive=1,
+    max_negative=1)

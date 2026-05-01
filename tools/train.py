@@ -133,6 +133,7 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
+    model.cfg = cfg
 
     logger.info(model)
 
@@ -152,6 +153,7 @@ def main():
             PALETTE=datasets[0].PALETTE)
     # add an attribute for visualization convenience
     model.CLASSES = datasets[0].CLASSES
+    model.PALETTE = datasets[0].PALETTE
     train_segmentor(
         model,
         datasets,

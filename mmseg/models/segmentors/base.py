@@ -84,6 +84,8 @@ class BaseSegmentor(nn.Module):
                 augs (multiscale, flip, etc.) and the inner list indicates
                 images in a batch.
         """
+        imgs = self._wrap_test_inputs(imgs)
+        img_metas = self._wrap_test_inputs(img_metas)
         for var, name in [(imgs, 'imgs'), (img_metas, 'img_metas')]:
             if not isinstance(var, list):
                 raise TypeError(f'{name} must be a list, but got '
@@ -191,6 +193,18 @@ class BaseSegmentor(nn.Module):
                 key: BaseSegmentor._unwrap_data_containers(value)
                 for key, value in data.items()
             }
+        return data
+
+    @staticmethod
+    def _wrap_test_inputs(data):
+        if isinstance(data, torch.Tensor):
+            return [data]
+        if isinstance(data, list):
+            if not data:
+                return data
+            if isinstance(data[0], dict):
+                return [data]
+            return data
         return data
 
     @staticmethod

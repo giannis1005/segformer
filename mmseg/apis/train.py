@@ -6,7 +6,7 @@ import torch
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import build_optimizer, build_runner
 
-from mmseg.core import DistEvalHook, EvalHook
+from mmseg.core import DistEvalHook, EvalHook, PreviewHook
 from mmseg.datasets import build_dataloader, build_dataset
 from mmseg.utils import get_root_logger
 
@@ -110,6 +110,10 @@ def train_segmentor(model,
         eval_cfg['by_epoch'] = cfg.runner['type'] != 'IterBasedRunner'
         eval_hook = DistEvalHook if distributed else EvalHook
         runner.register_hook(eval_hook(val_dataloader, **eval_cfg))
+
+    preview_cfg = cfg.get('preview_config', None)
+    if preview_cfg is not None:
+        runner.register_hook(PreviewHook(**preview_cfg), priority='LOW')
 
     if cfg.resume_from:
         runner.resume(cfg.resume_from)

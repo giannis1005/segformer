@@ -7,6 +7,7 @@ import mmcv
 import numpy as np
 import torch
 import torch.distributed as dist
+from mmcv.parallel import DataContainer
 from mmcv.image import tensor2imgs
 from mmcv.runner import get_dist_info
 from IPython import embed
@@ -57,6 +58,7 @@ def single_gpu_test(model,
     dataset = data_loader.dataset
     prog_bar = mmcv.ProgressBar(len(dataset))
     for i, data in enumerate(data_loader):
+        data = _unwrap_cpu_data(data)
         with torch.no_grad():
             result = model(return_loss=False, **data)
 
@@ -98,6 +100,21 @@ def single_gpu_test(model,
         for _ in range(batch_size):
             prog_bar.update()
     return results
+
+
+def _unwrap_cpu_data(data):
+    if isinstance(data, DataContainer):
+        data = data.data
+        if isinstance(data, list) and len(data) == 1:
+            return _unwrap_cpu_data(data[0])
+        return _unwrap_cpu_data(data)
+    if isinstance(data, list):
+        return [_unwrap_cpu_data(item) for item in data]
+    if isinstance(data, tuple):
+        return tuple(_unwrap_cpu_data(item) for item in data)
+    if isinstance(data, dict):
+        return {key: _unwrap_cpu_data(value) for key, value in data.items()}
+    return data
 
 
 def multi_gpu_test(model,
